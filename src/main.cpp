@@ -13,7 +13,7 @@
 
 #include <vtable.h>
 
-GarrysMod::Lua::ILuaBase* LUA = nullptr;
+GarrysMod::Lua::ILuaBase* _LUA = nullptr;
 VTable* hooker = nullptr;
 
 typedef bool(__thiscall* RunCommandFn)(void*, const char*);
@@ -28,25 +28,25 @@ const SourceSDK::ModuleLoader engine_loader("engine");
 
 bool AllowStringCommand(const char* cmdStr, bool isUnrestricted) 
 {
-	if (LUA == nullptr) return true;
+	if (_LUA == nullptr) return true;
 
-	LUA->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-	LUA->GetField(-1, "hook");
+	_LUA->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+	_LUA->GetField(-1, "hook");
 
-	LUA->GetField(-1, "Run");
-	LUA->PushString("AllowStringCommand");
-	LUA->PushString(cmdStr);
-	LUA->PushBool(isUnrestricted);
+	_LUA->GetField(-1, "Run");
+	_LUA->PushString("AllowStringCommand");
+	_LUA->PushString(cmdStr);
+	_LUA->PushBool(isUnrestricted);
 
-	LUA->Call(3, 1);
+	_LUA->Call(3, 1);
 
 	bool ret = true;
-	if (LUA->GetType(-1) == (int)GarrysMod::Lua::Type::BOOL) 
+	if (_LUA->GetType(-1) == (int)GarrysMod::Lua::Type::BOOL) 
 	{
-		ret = LUA->GetBool(-1);
+		ret = _LUA->GetBool(-1);
 	}
 
-	LUA->Pop(3);
+	_LUA->Pop(3);
 
 	return ret;
 }
@@ -90,7 +90,7 @@ void ClientCommandUnrestricted(void* inst, const char* cmdStr)
 
 GMOD_MODULE_OPEN() 
 {
-	LUA = LUA;
+	_LUA = LUA;
 
 #if IS_SERVERSIDE
 	IVEngineServer* serverInterface = reinterpret_cast<IVEngineServer*>(CreateInterfaceFn(engine_loader.GetSymbol("CreateInterface"))(INTERFACEVERSION_VENGINESERVER, 0));
