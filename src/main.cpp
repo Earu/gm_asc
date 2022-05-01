@@ -3,12 +3,22 @@
 
 #if IS_SERVERSIDE 
 #include <eiface.h>
+#ifdef _WIN32
 #define SERVER_CMD_INDEX 36
 #define SERVER_CLIENT_CMD_INDEX 5
 #else
+#define SERVER_CMD_INDEX 37
+#define SERVER_CLIENT_CMD_INDEX 6
+#end
+#else
 #include <cdll_int.h>
+#ifdef _WIN32
 #define CLIENT_CMD_INDEX 6
 #define CLIENT_CMD_UNRESTRICTED_INDEX 106
+#else
+#define CLIENT_CMD_INDEX 7
+#define CLIENT_CMD_UNRESTRICTED_INDEX 107
+#end
 #endif
 
 #include <vtable.h>
