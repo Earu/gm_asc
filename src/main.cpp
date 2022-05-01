@@ -19,7 +19,7 @@
 #define CLIENT_CMD_UNRESTRICTED_INDEX 106
 #else
 #define CLIENT_CMD_INDEX 7
-#define CLIENT_CMD_UNRESTRICTED_INDEX 107
+#define CLIENT_CMD_UNRESTRICTED_INDEX 106
 #define __thiscall
 #define __cdecl
 #endif
