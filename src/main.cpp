@@ -9,7 +9,7 @@
 #else
 #define SERVER_CMD_INDEX 37
 #define SERVER_CLIENT_CMD_INDEX 6
-#end
+#endif
 #else
 #include <cdll_int.h>
 #ifdef _WIN32
@@ -18,7 +18,7 @@
 #else
 #define CLIENT_CMD_INDEX 7
 #define CLIENT_CMD_UNRESTRICTED_INDEX 107
-#end
+#endif
 #endif
 
 #include <vtable.h>
