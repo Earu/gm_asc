@@ -9,6 +9,8 @@
 #else
 #define SERVER_CMD_INDEX 37
 #define SERVER_CLIENT_CMD_INDEX 6
+#define __thiscall
+#define __cdecl
 #endif
 #else
 #include <cdll_int.h>
@@ -18,6 +20,8 @@
 #else
 #define CLIENT_CMD_INDEX 7
 #define CLIENT_CMD_UNRESTRICTED_INDEX 107
+#define __thiscall
+#define __cdecl
 #endif
 #endif
 
