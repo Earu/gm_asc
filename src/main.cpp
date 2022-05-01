@@ -30,11 +30,13 @@
 GarrysMod::Lua::ILuaBase* _LUA = nullptr;
 VTable* hooker = nullptr;
 
-typedef bool(__thiscall* RunCommandFn)(void*, const char*);
+typedef void(__thiscall* RunCommandFn)(void*, const char*);
 typedef void* (__cdecl* CreateInterfaceFn)(const char* name, int* found);
 
 #if IS_SERVERSIDE
 VTable* server_client_hooker = nullptr;
+IVEngineServer* serverInterface = nullptr;
+IServerGameClients* serverClientInterface = nullptr;
 const SourceSDK::ModuleLoader engine_loader("engine_srv");
 #else
 const SourceSDK::ModuleLoader engine_loader("engine");
@@ -75,13 +77,38 @@ void ServerCommand(void* inst, const char* cmdStr)
 	}
 }
 
-// TODO: Figure out how to edict_t to ent index
-/*void ClientIssuedCommand(edict_t* pEntity, const CCommand& args)
+typedef void(__thiscall* ClientIssuedCommandFn)(void*, edict_t*, const CCommand&);
+void ClientIssuedCommand(void* inst, edict_t* pEntity, const CCommand& args)
 {
 	const char* cmdStr = args.GetCommandString();
-	CBaseEntity* ent = pEntity->GetIServerEntity()->GetBaseEntity();
-	
-}*/
+	int index = serverInterface->IndexOfEdict(pEntity);
+
+	_LUA->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+	_LUA->GetField(-1, "hook");
+
+	_LUA->GetField(-1, "Run");
+	_LUA->PushString("AllowClientStringCommand");
+
+	_LUA->GetField(-4, "Entity");
+	_LUA->PushNumber(index);
+	_LUA->Call(1, 1); // push the player on the stack, to pass it to the hook
+
+	_LUA->PushString(cmdStr);
+
+	_LUA->Call(3, 1);
+
+	bool ret = true;
+	if (_LUA->GetType(-1) == (int)GarrysMod::Lua::Type::BOOL)
+	{
+		ret = _LUA->GetBool(-1);
+	}
+
+	_LUA->Pop(3);
+
+	if (!ret) return; // deny user the command
+
+	ClientIssuedCommandFn(server_client_hooker->getold(SERVER_CLIENT_CMD_INDEX))(inst, pEntity, args);
+}
 #else
 void ClientCommand(void* inst, const char* cmdStr)
 {
@@ -107,14 +134,14 @@ GMOD_MODULE_OPEN()
 	_LUA = LUA;
 
 #if IS_SERVERSIDE
-	IVEngineServer* serverInterface = reinterpret_cast<IVEngineServer*>(CreateInterfaceFn(engine_loader.GetSymbol("CreateInterface"))(INTERFACEVERSION_VENGINESERVER, 0));
-	IServerGameClients* serverClientInterface = reinterpret_cast<IServerGameClients*>(CreateInterfaceFn(engine_loader.GetSymbol("CreateInterface"))(INTERFACEVERSION_SERVERGAMECLIENTS, 0));
+	serverInterface = reinterpret_cast<IVEngineServer*>(CreateInterfaceFn(engine_loader.GetSymbol("CreateInterface"))(INTERFACEVERSION_VENGINESERVER, 0));
+	serverClientInterface = reinterpret_cast<IServerGameClients*>(CreateInterfaceFn(engine_loader.GetSymbol("CreateInterface"))(INTERFACEVERSION_SERVERGAMECLIENTS, 0));
 
 	hooker = new VTable(serverInterface);
 	hooker->hook(SERVER_CMD_INDEX, (void*)&ServerCommand);
 
-	/*server_client_hooker = new VTable(serverClientInterface);
-	server_client_hooker->hook(SERVER_CLIENT_CMD_INDEX, (void*)&ClientIssuedCommand);*/
+	server_client_hooker = new VTable(serverClientInterface);
+	server_client_hooker->hook(SERVER_CLIENT_CMD_INDEX, (void*)&ClientIssuedCommand);
 #else
 	IVEngineClient013* clientInterface = reinterpret_cast<IVEngineClient013*>(CreateInterfaceFn(engine_loader.GetSymbol("CreateInterface"))(VENGINE_CLIENT_INTERFACE_VERSION, 0));
 	hooker = new VTable(clientInterface);
@@ -130,9 +157,9 @@ GMOD_MODULE_CLOSE()
 {
 #if IS_SERVERSIDE
 	hooker->unhook(SERVER_CMD_INDEX);
-	//server_client_hooker->unhook(SERVER_CLIENT_CMD_INDEX);
+	server_client_hooker->unhook(SERVER_CLIENT_CMD_INDEX);
 
-	//delete server_client_hooker;
+	delete server_client_hooker;
 #else
 	hooker->unhook(CLIENT_CMD_INDEX);
 	hooker->unhook(CLIENT_CMD_UNRESTRICTED_INDEX);
